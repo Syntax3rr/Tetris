@@ -2,7 +2,7 @@ package Tetromino;
 
 import MiscClasses.Position;
 
-import TetrisGame.GameBoard;
+import TetrisGame.Board;
 
 /** Class specific to the T Tetromino */
 public class TTetromino extends BasicTetromino {
@@ -46,11 +46,11 @@ public class TTetromino extends BasicTetromino {
     public int tSpinState;
 
     /** Constructor
-     * @param game a pointer to the GameBoard Object
+     * @param game a pointer to the Board Object
      * @param board a pointer to the 2D game matrix
      * @param levelTime a pointer to the drop speed
      */
-    public TTetromino(GameBoard game, Character[][] board, Integer levelTime) {
+    public TTetromino(Board game, Character[][] board, Integer levelTime) {
         super(game, board, levelTime);
         position = new Position(4, 2);
         tSpinState = 0;
@@ -98,7 +98,7 @@ public class TTetromino extends BasicTetromino {
         for(int offSetY = 0; offSetY < testTetromino.length; offSetY++ ) {
             for(int offSetX = 0; offSetX < testTetromino[0].length; offSetX++ ) {
                 if(gameBoard[position.y + testPos.y + offSetY][position.x + testPos.x + offSetX + 1] != 'n') {
-                    switch(testTetromino[offSetY][offSetX]) {
+                    switch(testTetromino[offSetY][offSetX]) { //a b c d should probably all be in a map
                         case 'T': 
                             return false;
                         case 'a':

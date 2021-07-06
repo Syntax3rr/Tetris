@@ -3,14 +3,22 @@ package TetrisGame;
 import MiscClasses.Position;
 import TetrisUI.AppState;
 import TetrisUI.GameRenderer;
+import TetrisUI.Options;
 import Tetromino.*;
 
+import java.util.Arrays;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
+
 /** Class which handles the game part of the game, keeping track of game objects and the like */
-public class GameBoard {
+public class GameBoard implements Board {
     //Adding 2 spaces to each side, because of bounding boxes being larger than the tetromino.
     //The only valid positions are x∈[2, 11] & y∈[0, 23] with y∈[0, 3] being above the playing field
     private Character[][] gameBoard = new Character[26][14]; 
@@ -44,9 +52,17 @@ public class GameBoard {
     private TetrominoQueue queue;
     // The Renderer
     private GameRenderer gameRenderer;
-    /** The ScheduledThreadPoolExecutor. 
-     * This should probably be private, but it doesn't really do too much, so it's probably fine */
+    /** The ScheduledThreadPoolExecutor. */
     public ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+
+    // SFX Stuff
+    private AudioInputStream lockDownInputStream;
+    private AudioInputStream lineClearInputStream;
+    private AudioInputStream back2BackInputStream;
+    private Clip lockDownClip;
+    private Clip lineClearClip;
+    private Clip backToBackClip;
+
 
     /** Constructor
      * @param level Starting level
@@ -74,8 +90,30 @@ public class GameBoard {
             }
         }
 
+        try { //Loading Sounds
+            lockDownInputStream = AudioSystem.getAudioInputStream(new File("TetrisUI/Audio/SFX/lockDown.wav").getAbsoluteFile());
+            lineClearInputStream = AudioSystem.getAudioInputStream(new File("TetrisUI/Audio/SFX/lineClear.wav").getAbsoluteFile());
+            back2BackInputStream = AudioSystem.getAudioInputStream(new File("TetrisUI/Audio/SFX/back2Back.wav").getAbsoluteFile());
+            lockDownClip = AudioSystem.getClip();
+            lineClearClip = AudioSystem.getClip();
+            backToBackClip = AudioSystem.getClip();
+            lockDownClip.open(lockDownInputStream);
+            lineClearClip.open(lineClearInputStream);
+            backToBackClip.open(back2BackInputStream);
+    
+        } catch (Exception e) {
+            System.err.println("GameBoard.constructor():" + e);
+        }
+        
+        
+
         queue = new TetrominoQueue();
         currentTetromino = getTetromino(queue.getNext());
+    }
+
+    /** @return the ScheduledThreadPoolExecutoir */
+    public ScheduledThreadPoolExecutor getSTPE() {
+        return scheduledThreadPoolExecutor;
     }
 
     /** @return The actual game matrix */
@@ -114,6 +152,11 @@ public class GameBoard {
     /** @return The visual tetromino data from the {@link TetrominoQueue} */
     public ArrayList<Character[][]> getQueue() {
         return queue.getQueue();
+    }
+
+    /** @return The Options */
+    public Options getOptions() {
+        return gameRenderer.getOptions();
     }
 
     /** @return the calculated score */
@@ -192,16 +235,21 @@ public class GameBoard {
     }
 
     //Check if any lines are full and remove them, returning the number of lines cleared
-    private int clearLines() {
+    private int clearLines() { // The Bugs from before were because I was having the array contain references to itself... Gah. It's fixed now though.
         int tempLinesCleared = 0;
-        nextLine: for(int i = boardBottom; i >= 0; i--) {
-            gameBoard[i + tempLinesCleared] = gameBoard[i]; //Shift rows to fill cleared rows
+        for(int i = boardBottom; i >= 0; i--) {
+            boolean fullLine = true;
+            gameBoard[i + tempLinesCleared] = Arrays.copyOf(gameBoard[i], gameBoard[i].length); //Shift rows to fill cleared rows
             for(int j = boardLeft; j <= boardRight; j++) { 
-                if(gameBoard[i][j] == 'n') continue nextLine; //If the line is incomplete, jump to the next iteration of the outer loop. I feel like this is heretical, but I think it works, so ¯\_(ツ)_/¯
+                if(gameBoard[i][j] == 'n') {
+                    fullLine = false; 
+                    break;
+                }
             }
-            gameBoard[i] = gameBoard[i + tempLinesCleared];
-            tempLinesCleared++; //Increment the number of lines cleared
-            gameBoard[i] = new Character[]{'x', 'x', 'n', 'n', 'n', 'n', 'n', 'n', 'n', 'n', 'n', 'n', 'x', 'x'};
+            if(fullLine) {
+                tempLinesCleared++; //Increment the number of lines cleared
+                gameBoard[i] = new Character[]{'x', 'x', 'n', 'n', 'n', 'n', 'n', 'n', 'n', 'n', 'n', 'n', 'x', 'x'};
+            }
         }
         
         for(int i = 3; i >= 0; i--) {  //Check for game over
@@ -212,7 +260,7 @@ public class GameBoard {
                 }
             }
         }
-
+        
         linesCleared += tempLinesCleared;
         calculateLevel();
         return tempLinesCleared;
@@ -245,12 +293,30 @@ public class GameBoard {
 
         if(tSpinStatus > 0 && clearLines > 0) tempBacktoBack = true;
 
+        if(tempScore == 0) {
+            FloatControl volumeCtrl = (FloatControl) lockDownClip.getControl(FloatControl.Type.MASTER_GAIN);
+            volumeCtrl.setValue(20f * (float) Math.log10(Double.parseDouble(gameRenderer.getOptions().getOption("SFX")) / 100));
+            lockDownClip.setFramePosition(0);
+            lockDownClip.start();
+        } else {
+            FloatControl volumeLCCtrl = (FloatControl) lineClearClip.getControl(FloatControl.Type.MASTER_GAIN);
+            volumeLCCtrl.setValue(20f * (float) Math.log10(Double.parseDouble(gameRenderer.getOptions().getOption("SFX")) / 100));
+            lineClearClip.setFramePosition(0);
+            lineClearClip.start();
+            if(tempBacktoBack) { //Sound for B2B
+                FloatControl volumeLDCtrl = (FloatControl) backToBackClip.getControl(FloatControl.Type.MASTER_GAIN);
+                volumeLDCtrl.setValue(20f * (float) Math.log10(Double.parseDouble(gameRenderer.getOptions().getOption("SFX")) / 100));
+                backToBackClip.setFramePosition(0);
+                backToBackClip.start();
+            }
+        }
         if(backToBackLast && tempBacktoBack) {
             tempScore *= 1.5;
         }
 
+        
         backToBackLast = (tSpinStatus == 0 && clearLines > 0) ? false : backToBackLast; //If it's a normal line clear, break the B2B. Otherwise continue as is.
-        score += tempScore;
+        score += tempScore + currentTetromino.getSpecialDropLines();
     }
 
 }

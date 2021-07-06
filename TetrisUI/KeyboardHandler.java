@@ -2,7 +2,6 @@ package TetrisUI;
 
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.security.KeyException;
 import java.util.HashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +50,11 @@ public class KeyboardHandler extends KeyAdapter {
         listeners.put(key, callback);
     }
 
+    /** Add a one-time key listener that runs on any keypress*/
+    public void addListener(Runnable callback) {
+        listeners.put("any", callback);
+    }
+
     /** Remove a keylistener
      * @param key the key to remove it's listener
      */
@@ -63,24 +67,16 @@ public class KeyboardHandler extends KeyAdapter {
         listeners.clear();
     }
 
-    /** Add a one-time key listener that runs on any keypress*/
-    public void addListener(Runnable callback) {
-        listeners.put("any", callback);
-    }
-
     /** Run the respective listener callback for a given keypress
      * @param pressedKey the key that was pressed
      */
     public void keyPressEvent(String pressedKey) {
-        if(listeners.get("any") != null) {
+        if(listeners.containsKey("any")) {
             listeners.get("any").run();
             listeners.remove("any");
         }
-        if(listeners.get(renderer.getOptions().getControl("SoftDrop")) != null && !pressedKey.equals(renderer.getOptions().getControl("SoftDrop"))) {
-            listeners.get(renderer.getOptions().getControl("SoftDrop")).run();
-        }
-        
-        if(renderer.getAppState() == AppState.PLAY && listeners.get(pressedKey) != null) {
+
+        if(renderer.getAppState() == AppState.PLAY && listeners.containsKey(pressedKey)) {
             listeners.get(pressedKey).run();
         }
     }
@@ -89,8 +85,10 @@ public class KeyboardHandler extends KeyAdapter {
      * @param pressedKey the key pressed
      */
     public void keyAutoRepeat(String pressedKey) {
-        keyPressEvent(pressedKey);
-        keyAutoRepeatFuture = scheduledThreadPoolExecutor.schedule(() -> {keyAutoRepeat(pressedKey);}, 33, TimeUnit.MILLISECONDS); //ARR of 33ms
+        if(keyMap.get(pressedKey)) { //Double check that the key is pressed
+            keyPressEvent(pressedKey);
+            keyAutoRepeatFuture = scheduledThreadPoolExecutor.schedule(() -> {keyAutoRepeat(pressedKey);}, 33, TimeUnit.MILLISECONDS); //ARR of 33ms
+        }
     }
 
     /** Detect a keypress and handle what happens to it
@@ -103,10 +101,10 @@ public class KeyboardHandler extends KeyAdapter {
         newKey = thisKey;
         keyMap.replace(thisKey, true);
 
-        if(thisKey == renderer.getOptions().getControl("SoftDrop")) isSoftDropping = true;
+        if(thisKey == renderer.getOptions().getOption("SoftDrop")) isSoftDropping = true;
 
         keyPressEvent(thisKey);
-        if(thisKey.equals(renderer.getOptions().getControl("MoveLeft")) || thisKey.equals(renderer.getOptions().getControl("MoveRight"))) {
+        if(thisKey.equals(renderer.getOptions().getOption("MoveLeft")) || thisKey.equals(renderer.getOptions().getOption("MoveRight"))) {
             moveKey = thisKey;
             if(keyAutoRepeatFuture != null) keyAutoRepeatFuture.cancel(true);
             keyAutoRepeatFuture = scheduledThreadPoolExecutor.schedule(() -> {keyAutoRepeat(thisKey);}, 200, TimeUnit.MILLISECONDS); //DAS of 200ms
@@ -120,17 +118,15 @@ public class KeyboardHandler extends KeyAdapter {
         String thisKey = KeyEvent.getKeyText(e.getKeyCode());
         keyMap.replace(thisKey, false);
 
-        if(thisKey == renderer.getOptions().getControl("SoftDrop")) isSoftDropping = false;
+        if(thisKey == renderer.getOptions().getOption("SoftDrop")) { 
+            isSoftDropping = false;
+            listeners.get(renderer.getOptions().getOption("SoftDrop")).run();
+        }
 
-        if(thisKey.equals(renderer.getOptions().getControl("MoveLeft")) || thisKey.equals(renderer.getOptions().getControl("MoveRight"))) {
-            String oppositeMoveKey = thisKey.equals(renderer.getOptions().getControl("MoveLeft")) ? renderer.getOptions().getControl("MoveRight") : renderer.getOptions().getControl("MoveLeft");
-            if(keyAutoRepeatFuture != null) keyAutoRepeatFuture.cancel(true);
+        if(thisKey.equals(renderer.getOptions().getOption("MoveLeft")) || thisKey.equals(renderer.getOptions().getOption("MoveRight"))) {
+            String oppositeMoveKey = thisKey.equals(renderer.getOptions().getOption("MoveLeft")) ? renderer.getOptions().getOption("MoveRight") : renderer.getOptions().getOption("MoveLeft");
             if(moveKey == thisKey && keyMap.containsKey(oppositeMoveKey) && keyMap.get(oppositeMoveKey)) keyAutoRepeatFuture = scheduledThreadPoolExecutor.schedule(() -> {keyAutoRepeat(oppositeMoveKey);}, 200, TimeUnit.MILLISECONDS); //DAS of 200ms
         } 
-
-        if(listeners.get(renderer.getOptions().getControl("SoftDrop")) != null && isSoftDropping == false) {
-            listeners.get(renderer.getOptions().getControl("SoftDrop")).run();
-        }
     }
 
 }

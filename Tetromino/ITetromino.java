@@ -4,7 +4,7 @@ import java.util.Map;
 import static java.util.Map.entry;
 
 import MiscClasses.Position;
-import TetrisGame.GameBoard;
+import TetrisGame.Board;
 
 /** Class specific to the I Tetromino */
 public class ITetromino extends BasicTetromino {
@@ -36,32 +36,32 @@ public class ITetromino extends BasicTetromino {
             entry(0, new Position(0, 0)),
             entry(1, new Position(1, 0)),
             entry(2, new Position(-2, 0)),
-            entry(3, new Position(1, -2)),
-            entry(4, new Position(-2, 1)),
+            entry(3, new Position(1, 2)),
+            entry(4, new Position(-2, -1)),
             entry(-1, new Position(-1, 0)),
             entry(-2, new Position(2, 0)),
-            entry(-3, new Position(-1, 2)),
-            entry(-4, new Position(2, -1))
+            entry(-3, new Position(-1, -2)),
+            entry(-4, new Position(2, 1))
         )),
         entry(1, Map.ofEntries( //For Rotations 0<->1 & 2<->3
             entry(0, new Position(0, 0)),
             entry(1, new Position(2, 0)),
             entry(2, new Position(-1, 0)),
-            entry(3, new Position(2, 1)),
-            entry(4, new Position(-1, -2)),
+            entry(3, new Position(2, -1)),
+            entry(4, new Position(-1, 2)),
             entry(-1, new Position(-2, 0)),
             entry(-2, new Position(1, 0)),
-            entry(-3, new Position(-2, -1)),
-            entry(-4, new Position(1, 2))
+            entry(-3, new Position(-2, 1)),
+            entry(-4, new Position(1, -2))
         ))
     );
 
     /** Constructor
-     * @param game a pointer to the GameBoard Object
+     * @param game a pointer to the Board Object
      * @param board a pointer to the 2D game matrix
      * @param levelTime a pointer to the drop speed
      */
-    public ITetromino(GameBoard game, Character[][] board, Integer levelTime) {
+    public ITetromino(Board game, Character[][] board, Integer levelTime) {
         super(game, board, levelTime);
         minoType = 'I';
         position = new Position(4, 2);
@@ -78,22 +78,24 @@ public class ITetromino extends BasicTetromino {
     }
 
     @Override
-    /** Overloads the {@link BasicTetromino#kickTest(int)} to work with the expanded I Tetromino kick rules
+    /** Overloads the {@link BasicTetromino#kickTest(int)} to work with the different I Tetromino kick rules
      * @param testSpinPostion the spin position to test
      * @return whether or not the tetromino can spin
      */
     protected boolean kickTest(int testSpinPosition) {
         int testDir = (spinPosition == 0 || testSpinPosition == 2) ? -1 : 1;
-        int expandI = (spinPosition + testSpinPosition == 3) ? 0 : 1;
+        int rulesI = (spinPosition + testSpinPosition == 3) ? 0 : 1; //This feels wrong... but it works
         for(int i = 0; i != 4 * testDir; i += testDir ) {
-            if(boardCollision(tetromino[testSpinPosition], kickData.get(expandI).get(i))) {
-                position.x += kickData.get(expandI).get(i).x;
-                position.y += kickData.get(expandI).get(i).y;
+            if(boardCollision(tetromino[testSpinPosition], kickData.get(rulesI).get(i))) {
+                position.x += kickData.get(rulesI).get(i).x;
+                position.y += kickData.get(rulesI).get(i).y;
                 spinPosition = testSpinPosition;
+                playSound("spinTrue");
                 refresh('S');
                 return true;
             }
         }
+        playSound("spinFalse");
         return false;
     }
 }

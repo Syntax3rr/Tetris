@@ -12,6 +12,8 @@ public interface Tetromino {
     Position getPosition();
     /** @return top-left of the tetromino's hard drop position */
     Position getDropPosition();
+    /** @return the number of lines dropped via softdrop or harddrop (Harddrop lines are counted twice) */
+    public int getSpecialDropLines();
     /** Stop the tetromino, cancelling falling and locking timers */
     void stopTetromino();
     /** Try to move the tetromino left 
@@ -24,6 +26,10 @@ public interface Tetromino {
     boolean moveRight();
     /** Hard drop the tetromino, setting the position to the dropPosition*/
     void hardDrop();
+    /** Hard drop the tetromino, setting the position to the dropPosition.
+     * @param firmDrop if true, the tetromino does not automatically lock on a harddrop.
+    */
+    void hardDrop(boolean firmDrop);
     /** Soft drop the tetromino, dividing the drop speed by 20 temporarily */
     void setSoftDrop(boolean isTrue);
     /** Lock the tetromino in x milliseconds */

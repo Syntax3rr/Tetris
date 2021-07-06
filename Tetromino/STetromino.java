@@ -1,7 +1,7 @@
 package Tetromino;
 
 import MiscClasses.Position;
-import TetrisGame.GameBoard;
+import TetrisGame.Board;
 
 /** Class specific to the S Tetromino */
 public class STetromino extends BasicTetromino {
@@ -25,11 +25,11 @@ public class STetromino extends BasicTetromino {
     };
     
     /** Constructor
-     * @param game a pointer to the GameBoard Object
+     * @param game a pointer to the Board Object
      * @param board a pointer to the 2D game matrix
      * @param levelTime a pointer to the drop speed
      */
-    public STetromino(GameBoard game, Character[][] board, Integer levelTime) {
+    public STetromino(Board game, Character[][] board, Integer levelTime) {
         super(game, board, levelTime);
         position = new Position(4, 2);
         minoType = 'S';

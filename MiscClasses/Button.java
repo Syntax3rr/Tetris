@@ -106,6 +106,7 @@ public class Button { //Button Class, I probably could've used JButtons, but thi
 
         tempGraphics.dispose();
         btnIconGraphics.dispose();        
+        temp.flush();
     }
 
     /** Generates 3 images for the button: Normal, Hovered, Pressed */
@@ -132,7 +133,7 @@ public class Button { //Button Class, I probably could've used JButtons, but thi
     /** Draw the button, darkening it depending on the hoverstate
      * @return The {@link BufferedImage} of the button
     */
-    public BufferedImage getBtnImg() { //Probably not the most efficient to redraw the button every frame, but it makes life a bit easier for now.
+    public BufferedImage getBtnImg() {
         return btnImages[hoverState];  
     }
 
@@ -172,7 +173,7 @@ public class Button { //Button Class, I probably could've used JButtons, but thi
      * @return A boolean of whether or not the coordinates are contained within the button
     */
     public boolean btnCollision(AppState currentScreen, double x, double y) {
-        if(currentScreen == visibleAppState && x >= left && x <= left + width && y >= top && y <= top + height) return true;
+        if((visibleAppState == null || currentScreen == visibleAppState) && x >= left && x <= left + width && y >= top && y <= top + height) return true;
         return false;
     }
 }

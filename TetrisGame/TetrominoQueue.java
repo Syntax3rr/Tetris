@@ -2,6 +2,7 @@ package TetrisGame;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import Tetromino.*;
 
@@ -35,7 +36,9 @@ public class TetrominoQueue {
      */
     public ArrayList<Character[][]> getQueue() { //This is really janky, but it seems to work fine
         ArrayList<Character[][]> output = new ArrayList<Character[][]>();
-        for(Character i : queue) {
+        ArrayList<Character> tempQueue = new ArrayList<Character>(List.copyOf(queue));
+    
+        for(Character i : tempQueue) {
             switch(i) {
                 case 'I':
                     output.add(ITetromino.getTetStatic(0));
